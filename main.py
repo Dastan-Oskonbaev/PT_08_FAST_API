@@ -1,10 +1,9 @@
-import asyncio
 import time
 
 from fastapi import FastAPI
 
 from src.config import settings
-
+from apps.projects.router import router as project_router
 router = FastAPI(title=settings.APP_NAME, version=settings.VERSION)
 
 @router.get("/terrible-ping")
@@ -24,3 +23,6 @@ async def good_ping():
 @router.get("/perfect-ping")
 async def perfect_ping():
     return {"pong": True}
+
+
+router.include_router(project_router)

@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import List
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, DateTime, func, ForeignKey
+from sqlalchemy import String, DateTime, func, ForeignKey, Text
 
 from src.db.base import Base
 
@@ -14,12 +14,12 @@ class User(Base):
     email: Mapped[str] = mapped_column(unique=True, index=True)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
-    projects: Mapped[List["Project"]] = relationship(
-        "Project",
-        back_populates="owner",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-    )
+    # projects: Mapped[List["Project"]] = relationship(
+    #     "Project",
+    #     back_populates="owner",
+    #     cascade="all, delete-orphan",
+    #     passive_deletes=True,
+    # )
 
 
 class Project(Base):
@@ -27,10 +27,11 @@ class Project(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    description: Mapped[str] = mapped_column(Text, nullable=True)
+    # owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
-    owner: Mapped["User"] = relationship(
-        "User",
-        back_populates="projects",
-    )
+    # owner: Mapped["User"] = relationship(
+    #     "User",
+    #     back_populates="projects",
+    # )
 
