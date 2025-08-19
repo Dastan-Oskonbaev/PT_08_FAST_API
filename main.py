@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from src.config import settings
 from apps.projects.router import router as project_router
+from apps.auth.router import router as auth_router
 router = FastAPI(title=settings.APP_NAME, version=settings.VERSION)
 
 @router.get("/terrible-ping")
@@ -26,3 +27,4 @@ async def perfect_ping():
 
 
 router.include_router(project_router)
+router.include_router(auth_router)

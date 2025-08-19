@@ -6,6 +6,10 @@ class Settings(BaseSettings):
     VERSION: str = "0.1.0"
 
     DATABASE_URL: str
+    ALGORITHM: str
+    ACCESS_TOKEN_EXPIRE_MINUTES: int
+    REFRESH_TOKEN_EXPIRE_DAYS: int
+    SECRET_KEY: str
 
     model_config = SettingsConfigDict(
         env_file=".env",
