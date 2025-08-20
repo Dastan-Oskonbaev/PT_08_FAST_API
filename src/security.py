@@ -1,13 +1,13 @@
 from datetime import datetime, timezone, timedelta
-from typing import Literal, Optional, Dict
+from typing import Literal, Optional, Dict, Annotated
 from uuid import uuid4
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException, Header
 from jose import jwt
 from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql.annotation import Annotated
+from starlette import status
 
 from src.config import settings
 from src.db.models import User
@@ -62,27 +62,47 @@ def create_refresh_token(*, sub: str) -> str:
 def decode_jwt(token: str) -> dict:
     return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
 
-async def get_current_user(token: Annotated[str, Depends(lambda authorization: _bearer_extractor(authorization))],
-                     session: Annotated[AsyncSession, Depends(get_session)]) -> User:
+def bearer_token_from_header(
+    authorization: Annotated[str | None, Header()] = None
+) -> str:
+    if not authorization:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing Authorization header",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    scheme, _, param = authorization.partition(" ")
+    if scheme.lower() != "bearer" or not param:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Authorization header",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return param
+
+# твоя зависимость получения пользователя из токена
+async def get_current_user(
+    token: Annotated[str, Depends(bearer_token_from_header)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> User:
     try:
         payload = decode_jwt(token)
-        if payload["type"] != "access":
+        if payload.get("type") != "access":
             raise ValueError("Invalid token type")
         user_id = int(payload["sub"])
-    except Exception as e:
-        raise ValueError("Invalid token") from e
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     result = await session.execute(select(User).where(User.id == user_id).limit(1))
-    user = result.scalars().one_or_none()
+    user = result.scalar_one_or_none()
     if not user:
-        raise ValueError("Invalid user")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     return user
-
-
-def _bearer_extractor(authorization: str) -> str:
-    if not authorization:
-        raise ValueError("Authorization header is missing")
-    parts = authorization.split()
-    if len(parts) != 2 or parts[0].lower() != "bearer":
-        raise ValueError("Invalid authorization header")
-    return parts[1]

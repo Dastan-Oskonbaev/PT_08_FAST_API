@@ -2,9 +2,10 @@ from datetime import datetime
 from typing import List
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, DateTime, func, ForeignKey, Text
+from sqlalchemy import String, DateTime, func, ForeignKey, Text, Enum as SAEnum
 
 from src.db.base import Base
+from src.db.enums import UserRole
 
 
 class User(Base):
@@ -20,6 +21,7 @@ class User(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+    role: Mapped[UserRole] = mapped_column(SAEnum(UserRole, name="user_role_enum"), nullable=False, default=UserRole.USER)
 
 
 class Project(Base):
